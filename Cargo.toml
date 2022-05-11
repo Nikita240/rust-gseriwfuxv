@@ -1,0 +1,8 @@
+[package]
+name = "kraken"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kraken"
+path = "main.rs"
