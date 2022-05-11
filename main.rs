@@ -3,6 +3,8 @@ use std::io;
 use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
+use std::env;
+use std::string::String;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -81,6 +83,8 @@ impl Account {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = env::args().collect();
+    let filename: &String = &args[1];
 
     let mut accounts: HashMap<u16, Account> = HashMap::new();
     let mut transactions: HashMap<u32, Transaction> = HashMap::new();
@@ -88,7 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut rdr = csv::ReaderBuilder::new()
         .trim(csv::Trim::All)
-        .from_path("transactions.csv")?;
+        .from_path(filename)?;
 
     for result in rdr.deserialize() {
 
