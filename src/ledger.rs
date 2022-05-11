@@ -1,82 +1,11 @@
-use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum TransactionType {
-    Deposit,
-    Withdrawal,
-    Dispute,
-    Resolve,
-    Chargeback
-}
+pub mod transaction;
+use transaction::{Transaction, TransactionType};
 
-#[derive(Debug, Deserialize)]
-pub struct Transaction {
-    #[serde(rename = "type")]
-    transaction_type: TransactionType,
-
-    #[serde(rename = "client")]
-    client_id: u16,
-
-    #[serde(rename = "tx")]
-    id: u32,
-
-    amount: Option<Decimal>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Account {
-    #[serde(rename = "client")]
-    id: u16,
-    available: Decimal,
-    held: Decimal,
-    total: Decimal,
-    locked: bool
-}
-
-enum WithdrawError {
-    AccountLockedError,
-    InsufficientBalanceError
-}
-
-impl Account {
-    fn deposit(&mut self, amount: Decimal) {
-        self.total += amount;
-        self.available += amount;
-    }
-
-    fn withdraw(&mut self, amount: Decimal) -> Result<(), WithdrawError> { // return result
-        if self.locked {
-            return Err(WithdrawError::AccountLockedError)
-        }
-        else if self.available - amount < Decimal::ZERO {
-            return Err(WithdrawError::InsufficientBalanceError)
-        }
-
-        self.total -= amount;
-        self.available -= amount;
-
-        Ok(())
-    }
-
-    fn hold(&mut self, amount: Decimal) {
-        self.held += amount;
-        self.available -= amount;
-    }
-
-    fn release(&mut self, amount: Decimal) {
-        self.held -= amount;
-        self.available += amount;
-    }
-
-    fn chargeback(&mut self, amount: Decimal) {
-        self.held -= amount;
-        self.total -= amount;
-        self.locked = true;
-    }
-}
+pub mod account;
+use account::{Account, WithdrawError};
 
 #[derive(Default)]
 pub struct Ledger {

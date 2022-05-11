@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for result in rdr.deserialize() {
 
-        let transaction: ledger::Transaction = result?;
+        let transaction: ledger::transaction::Transaction = result?;
 
         ledger.transact(transaction);
     }

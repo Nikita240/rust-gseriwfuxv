@@ -10,4 +10,4 @@ rust_decimal = "1.23"
 
 [[bin]]
 name = "kraken"
-path = "main.rs"
+path = "src/main.rs"
