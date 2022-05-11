@@ -30,18 +30,18 @@ impl Ledger {
 
         match transaction.transaction_type {
             TransactionType::Deposit => {
-                account.deposit(transaction.amount.unwrap());
+                account.deposit(transaction.amount.unwrap_or(Decimal::ZERO));
                 self.transactions.insert(transaction.id, transaction);
             },
             TransactionType::Withdrawal => {
-                match account.withdraw(transaction.amount.unwrap()) {
+                match account.withdraw(transaction.amount.unwrap_or(Decimal::ZERO)) {
                     Ok(_) => {
                         self.transactions.insert(transaction.id, transaction);
                     },
                     Err(error) => {
                         match error {
-                            WithdrawError::AccountLockedError => eprintln!("Cannot withdraw {} from account {} because the account is locked", transaction.amount.unwrap(), transaction.client_id),
-                            WithdrawError::InsufficientBalanceError => eprintln!("Cannot withdraw {} from account {} because the account only has {}", transaction.amount.unwrap(), transaction.client_id, account.available)
+                            WithdrawError::AccountLockedError => eprintln!("Cannot withdraw {} from account {} because the account is locked", transaction.amount.unwrap_or(Decimal::ZERO), transaction.client_id),
+                            WithdrawError::InsufficientBalanceError => eprintln!("Cannot withdraw {} from account {} because the account only has {}", transaction.amount.unwrap_or(Decimal::ZERO), transaction.client_id, account.available)
                         };
                     }
                 };
@@ -49,7 +49,7 @@ impl Ledger {
             TransactionType::Dispute => {
                 match self.transactions.get(&transaction.id) {
                     Some(found_transaction) => {
-                        account.hold(found_transaction.amount.unwrap());
+                        account.hold(found_transaction.amount.unwrap_or(Decimal::ZERO));
                         self.disputed_transactions.insert(found_transaction.id);
                     },
                     None => eprintln!("Cannot dispute transaction {} because it does not exist", transaction.id)
@@ -59,7 +59,7 @@ impl Ledger {
                 match self.disputed_transactions.get(&transaction.id) {
                     Some(_) => match self.transactions.get(&transaction.id) {
                         Some(found_transaction) => {
-                            account.release(found_transaction.amount.unwrap());
+                            account.release(found_transaction.amount.unwrap_or(Decimal::ZERO));
                             self.disputed_transactions.remove(&found_transaction.id);
                         },
                         None => eprintln!("Cannot resolve transaction {} because it does not exist", transaction.id)
@@ -71,8 +71,12 @@ impl Ledger {
                 match self.disputed_transactions.get(&transaction.id) {
                     Some(_) => match self.transactions.get(&transaction.id) {
                         Some(found_transaction) => {
-                            account.chargeback(found_transaction.amount.unwrap());
+                            account.chargeback(found_transaction.amount.unwrap_or(Decimal::ZERO));
                             self.disputed_transactions.remove(&found_transaction.id);
+
+                            // In a typical production system, it probably makes sense to classify Chargebacks
+                            // as a new transaction. That way you avoid doing a "double chargeback" without
+                            // having to actually remove the transaction from your history.
                         },
                         None => eprintln!("Cannot chargeback transaction {} because it does not exist", transaction.id)
                     },
