@@ -82,3 +82,116 @@ impl Ledger {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deposit_withdraw() {
+        let mut ledger = Ledger::new();
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Deposit,
+            client_id: 0,
+            id: 0,
+            amount: Some(Decimal::new(10, 0))
+        });
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Withdrawal,
+            client_id: 0,
+            id: 1,
+            amount: Some(Decimal::new(5, 0))
+        });
+        assert_eq!(ledger.accounts.get(&0).unwrap().total, Decimal::new(5, 0));
+    }
+
+    #[test]
+    fn withdraw_insufficient_funds() {
+        let mut ledger = Ledger::new();
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Deposit,
+            client_id: 0,
+            id: 0,
+            amount: Some(Decimal::new(10, 0))
+        });
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Withdrawal,
+            client_id: 0,
+            id: 1,
+            amount: Some(Decimal::new(15, 0))
+        });
+        assert_eq!(ledger.accounts.get(&0).unwrap().total, Decimal::new(10, 0));
+    }
+
+    #[test]
+    fn resolve_dispute() {
+        // Note, the logic specified in the requirements doesn't actually make sense.
+        // It states that we should should hold funds from the client no matter if the
+        // disputed transaction is a deposit or a withdrawal. Surely if a client disputes
+        // a withdrawal, we should put the withdrawn amount into the "hold" state instead
+        // of deducting it from the current available amount? Currently, if a client
+        // disputes withdrawal, it's basically like asking to double charge him.
+        //
+        // Quote: "This means that the clients available funds should decrease by the amount
+        //         disputed, their held funds should increase by the amount disputed, while
+        //         their total funds should remain the same."
+        //
+        // It's very explicit about "decrease" and "increase" while making no mention of the
+        // type of transaction being disputed.
+
+        let mut ledger = Ledger::new();
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Deposit,
+            client_id: 0,
+            id: 0,
+            amount: Some(Decimal::new(10, 0))
+        });
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Dispute,
+            client_id: 0,
+            id: 0,
+            amount: None
+        });
+        assert_eq!(ledger.accounts.get(&0).unwrap().total, Decimal::new(10, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().available, Decimal::new(0, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().held, Decimal::new(10, 0));
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Resolve,
+            client_id: 0,
+            id: 0,
+            amount: None
+        });
+        assert_eq!(ledger.accounts.get(&0).unwrap().total, Decimal::new(10, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().available, Decimal::new(10, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().held, Decimal::new(0, 0));
+    }
+
+    #[test]
+    fn chargeback_dispute() {
+        let mut ledger = Ledger::new();
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Deposit,
+            client_id: 0,
+            id: 0,
+            amount: Some(Decimal::new(10, 0))
+        });
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Dispute,
+            client_id: 0,
+            id: 0,
+            amount: None
+        });
+        assert_eq!(ledger.accounts.get(&0).unwrap().total, Decimal::new(10, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().available, Decimal::new(0, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().held, Decimal::new(10, 0));
+        ledger.transact(Transaction {
+            transaction_type: TransactionType::Chargeback,
+            client_id: 0,
+            id: 0,
+            amount: None
+        });
+        assert_eq!(ledger.accounts.get(&0).unwrap().total, Decimal::new(0, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().available, Decimal::new(0, 0));
+        assert_eq!(ledger.accounts.get(&0).unwrap().held, Decimal::new(0, 0));
+    }
+}
