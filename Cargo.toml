@@ -1,5 +1,5 @@
 [package]
-name = "kraken"
+name = "gseriwfuxv"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,5 +9,5 @@ serde = { version = "1", features = ["derive"] }
 rust_decimal = "1.23"
 
 [[bin]]
-name = "kraken"
+name = "gseriwfuxv"
 path = "src/main.rs"
