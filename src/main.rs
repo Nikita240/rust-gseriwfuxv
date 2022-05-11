@@ -17,7 +17,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for result in rdr.deserialize() {
 
-        let transaction: ledger::transaction::Transaction = result?;
+        let mut transaction: ledger::transaction::Transaction = result?;
+
+        // Force decimal scale to 4.
+        match transaction.amount {
+            Some(ref mut amount) => {
+                amount.rescale(4);
+            },
+            None => ()
+        }
 
         ledger.transact(transaction);
     }
